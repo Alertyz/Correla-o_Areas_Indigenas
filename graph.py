@@ -1,98 +1,97 @@
-# Imports
+# Importações
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Set Streamlit page configuration
+# Configurar página do Streamlit
 st.set_page_config(layout="wide")
 
-# Class Definition
-class DeforestationAnalysis:
+# Definição da Classe
+class AnaliseDesmatamento:
     def __init__(self):
-        self.df_inc, self.df_ind = self.load_data()
-        self.sidebar_filters()
+        self.df_incendios, self.df_indigenas = self.carregar_dados()
+        self.filtros_na_barra_lateral()
 
-    def load_data(self):
-        """Load the datasets."""
-        df_inc = pd.read_csv("fires.csv", sep=';')
-        df_ind = pd.read_csv("dataset_indigenas.csv", sep=';', encoding='latin-1', decimal=',')
-        df_inc['year'] = df_inc['date'].str.split('/').str[0].astype(int)
-        df_inc.rename(columns={'class': 'Classe'}, inplace=True)
-        return df_inc, df_ind
+    def carregar_dados(self):
+        """Carrega os conjuntos de dados."""
+        df_incendios = pd.read_csv("fires.csv", sep=';')
+        df_indigenas = pd.read_csv("dataset_indigenas.csv", sep=';', encoding='latin-1', decimal=',')
+        df_incendios['ano'] = df_incendios['date'].str.split('/').str[0].astype(int)
+        df_incendios.rename(columns={'class': 'Classe'}, inplace=True)
+        return df_incendios, df_indigenas
 
-    def sidebar_filters(self):
-        """Create sidebar filters."""
+    def filtros_na_barra_lateral(self):
+        """Cria filtros na barra lateral."""
         st.sidebar.header("Filtros")
-        years = ["Todos"] + sorted(self.df_ind["ANO"].unique().tolist(), reverse=True)
-        self.ano_selected = st.sidebar.selectbox("Selecione o ano", years)
-        classes = ["Todos"] + self.df_inc["Classe"].unique().tolist()
-        self.classe_selected = st.sidebar.multiselect("Selecione as classes de desmatamento", classes, default=["Todos"])
-        states = ["Todos"] + self.df_inc["uf"].unique().tolist()
-        self.estado_selected = st.sidebar.multiselect("Selecione os estados", states, default=["Todos"])
+        anos = ["Todos"] + sorted(self.df_indigenas["ANO"].unique().tolist(), reverse=True)
+        self.ano_selecionado = st.sidebar.selectbox("Selecione o ano", anos)
+        classes = ["Todos"] + self.df_incendios["Classe"].unique().tolist()
+        self.classe_selecionada = st.sidebar.multiselect("Selecione as classes de desmatamento", classes, default=["Todos"])
+        estados = ["Todos"] + self.df_incendios["uf"].unique().tolist()
+        self.estado_selecionado = st.sidebar.multiselect("Selecione os estados", estados, default=["Todos"])
 
-    def run(self):
-        """Main run function to execute the dashboard."""
+    def executar(self):
+        """Função principal para executar o painel."""
         st.title("Análise de Desmatamento")
 
-        # Filtering data based on user inputs
-        df_inc_filtered = self.filter_inc_data()
-        df_ind_selected = self.filter_ind_data()
+        # Filtrando dados com base nas entradas do usuário
+        df_incendios_filtrados = self.filtrar_dados_incendios()
+        df_indigenas_selecionados = self.filtrar_dados_indigenas()
 
-        # Display plots
+        # Mostrando gráficos
         col1, col2 = st.columns(2)
         with col1:
-            self.plot_classe_distribution(df_inc_filtered)
+            self.grafico_distribuicao_por_classe(df_incendios_filtrados)
         with col2:
-            self.plot_state_distribution(df_inc_filtered)
-        self.plot_area_by_tribe(df_ind_selected)
-        self.plot_annual_comparison(df_inc_filtered, df_ind_selected)
+            self.grafico_distribuicao_por_estado(df_incendios_filtrados)
+        self.grafico_area_por_tribo(df_indigenas_selecionados)
+        self.grafico_comparacao_anual(df_incendios_filtrados, df_indigenas_selecionados)
 
-    def filter_inc_data(self):
-        """Filter the 'inc' dataset based on user input."""
-        df_filtered = self.df_inc.copy()
-        if "Todos" not in self.classe_selected:
-            df_filtered = df_filtered[df_filtered["Classe"].isin(self.classe_selected)]
-        if "Todos" not in self.estado_selected:
-            df_filtered = df_filtered[df_filtered["uf"].isin(self.estado_selected)]
-        if self.ano_selected != "Todos":
-            df_filtered = df_filtered[df_filtered["year"] == int(self.ano_selected)]
-        return df_filtered
+    def filtrar_dados_incendios(self):
+        """Filtra o conjunto 'incendios' com base na entrada do usuário."""
+        df_filtrado = self.df_incendios.copy()
+        if "Todos" not in self.classe_selecionada:
+            df_filtrado = df_filtrado[df_filtrado["Classe"].isin(self.classe_selecionada)]
+        if "Todos" not in self.estado_selecionado:
+            df_filtrado = df_filtrado[df_filtrado["uf"].isin(self.estado_selecionado)]
+        if self.ano_selecionado != "Todos":
+            df_filtrado = df_filtrado[df_filtrado["ano"] == int(self.ano_selecionado)]
+        return df_filtrado
 
-
-    def filter_ind_data(self):
-        """Filter the 'ind' dataset based on user input."""
-        if self.ano_selected != "Todos":
-            return self.df_ind[self.df_ind["ANO"] == int(self.ano_selected)]
+    def filtrar_dados_indigenas(self):
+        """Filtra o conjunto 'indigenas' com base na entrada do usuário."""
+        if self.ano_selecionado != "Todos":
+            return self.df_indigenas[self.df_indigenas["ANO"] == int(self.ano_selecionado)]
         else:
-            return self.df_ind.copy()
+            return self.df_indigenas.copy()
 
-    def plot_classe_distribution(self, df):
-        """Plot distribution of deforestation types."""
+    def grafico_distribuicao_por_classe(self, df):
+        """Plota a distribuição dos tipos de desmatamento."""
         if not df.empty:
             fig = px.pie(df, names='Classe', title='Distribuição dos tipos de desmatamento')
             st.plotly_chart(fig)
 
-    def plot_state_distribution(self, df):
-        """Plot distribution of deforestation by states."""
+    def grafico_distribuicao_por_estado(self, df):
+        """Plota a distribuição do desmatamento por estados."""
         if not df.empty:
             fig = px.pie(df, names='uf', title='Distribuição dos desmatamentos por estado')
             st.plotly_chart(fig)
 
-    def plot_area_by_tribe(self, df):
-        """Plot deforested area by tribe."""
-        fig = px.bar(df, x='TRIBO', y='AREA', title=f'Área desmatada por tribo em {self.ano_selected}')
+    def grafico_area_por_tribo(self, df):
+        """Plota a área desmatada por tribo."""
+        fig = px.bar(df, x='TRIBO', y='AREA', title=f'Área desmatada por tribo em {self.ano_selecionado}')
         st.plotly_chart(fig)
 
-    def plot_annual_comparison(self, df_inc, df_ind):
-        """Plot annual comparison between deforestation quantity and lost area."""
-        df_inc_agg = df_inc.groupby("year").size().reset_index(name="Quantidade de Desmatamentos")
-        df_ind_agg = df_ind.groupby("ANO")["AREA"].sum().reset_index(name="Area Perdida Total")
-        df_comparacao = pd.merge(df_inc_agg, df_ind_agg, left_on="year", right_on="ANO", how="outer").fillna(0)
+    def grafico_comparacao_anual(self, df_incendios, df_indigenas):
+        """Plota comparação anual entre a quantidade de desmatamento e a área perdida."""
+        df_incendios_agrupados = df_incendios.groupby("ano").size().reset_index(name="Quantidade de Desmatamentos")
+        df_indigenas_agrupados = df_indigenas.groupby("ANO")["AREA"].sum().reset_index(name="Area Perdida Total")
+        df_comparacao = pd.merge(df_incendios_agrupados, df_indigenas_agrupados, left_on="ano", right_on="ANO", how="outer").fillna(0)
         df_comparacao.drop(columns="ANO", inplace=True) 
-        fig = px.bar(df_comparacao, x="year", y=["Quantidade de Desmatamentos", "Area Perdida Total"], barmode="group", title="Comparação Anual")
+        fig = px.bar(df_comparacao, x="ano", y=["Quantidade de Desmatamentos", "Area Perdida Total"], barmode="group", title="Comparação Anual")
         st.plotly_chart(fig)
 
-# Main Execution
+# Execução Principal
 if __name__ == '__main__':
-    analysis = DeforestationAnalysis()
-    analysis.run()
+    analise = AnaliseDesmatamento()
+    analise.executar()
